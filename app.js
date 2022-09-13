@@ -1,3 +1,4 @@
+require('dotenv').config()
 const express = require('express')
 const app = express()
 
@@ -11,33 +12,34 @@ PORT = process.env.PORT || 9000
 app.listen(PORT, () => console.log("Listening on port "+ PORT))
 
 app.get('/', (req, res) => {
-    res.sendFile(__dirname+'/index.html')
+    res.sendFile(__dirname+'/html/index.html');
 })
 
 app.post('/', (req, res) => {
     const CITY = String(req.body.city).trim().toLowerCase()
     if(CITY == 'undefined') return res.status(400).send('city is undefined')
         
-    console.log('city:', CITY);
-    const API_KEY = '042bb27dba3ed91ee331ab7b0aed4350'
-    const URL = 'https://api.openweathermap.org/data/2.5/weather?q='+CITY+'&appid='+API_KEY+'&units=metric'
+    const URL = process.env.WEATHER_URL + '?q=' + CITY + '&appid=' + process.env.API_KEY + '&units=metric'
     
     https.get(URL, (response) => {
 
         response.on('data', (data) => {
             const weatherData = JSON.parse(data)
+            let result = "<html> <head> <link rel='stylesheet' href='./index.css'> </head> <body>";
             
-            if(weatherData.cod && weatherData.cod == "404") return res.status(404).send('city not found')
-    
-            const temp = Math.round(weatherData.main.temp)
-            const description = weatherData.weather[0].description
-            const iconURL = 'http://openweathermap.org/img/wn/'+weatherData.weather[0].icon+'@2x.png'
+            console.log(weatherData);
 
-            let result = "<center><h3 style='margin-top:200px'> The weather is currently "+description+"</h3>"
-            result += "<br><img src='"+iconURL+"' alt='Weather icon/image'/>"
-            result += "<br><h1>Temprature in "+CITY+" is "+temp+" Celcius</h1>"
-            res.send(result)
+            if(weatherData.cod && weatherData.cod == "404") return res.status(404).send(result+'<center><h2 style="margin-top:20%;">City not found</h2></center></body></html>')
+    
+            const temp = weatherData.main.temp;
+            const country = weatherData.sys.country;
+            const description = weatherData.weather[0].description;
+            const iconURL = 'http://openweathermap.org/img/wn/'+weatherData.weather[0].icon+'@2x.png';
+
+            result += "<center><p style='margin-top:200px; font-size:23px; '> The weather is currently <b>"+description+"</b>...</p>";
+            result += "<br><img src='"+iconURL+"' alt='Weather icon/image'/>";
+            result += "<br><p style='font-size:25px;'>Temprature in <b>"+CITY.toUpperCase()+" ("+country+")</b> is <b>"+temp+"</b> Celcius</p></body></html>";
+            res.send(result);
         })
     })
-
 })
